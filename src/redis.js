@@ -44,4 +44,13 @@ async function listKeys(prefix) {
   return keys;
 }
 
-module.exports = { redis, getJSON, setJSON, del, listKeys };
+async function getJSONSafe(key) {
+  try {
+    return await getJSON(key);
+  } catch (err) {
+    console.warn(`[redis] skipping unreadable key "${key}": ${err.message}`);
+    return null;
+  }
+}
+
+module.exports = { redis, getJSON, getJSONSafe, setJSON, del, listKeys };
