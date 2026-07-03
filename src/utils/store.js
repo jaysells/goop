@@ -1,8 +1,10 @@
-const { getJSON, setJSON, del, listKeys } = require('../redis');
+const { getJSON, getJSONSafe, setJSON, del, listKeys } = require('../redis');
+
+const NS = 'tgbot:'; // namespace so this bot never collides with keys from other bots sharing the same Redis DB
 
 // ---------------- Tickets ----------------
-// Key: ticket:<channelId> -> { type, panel, userId, answers, createdAt, guildId }
-const ticketKey = (channelId) => `ticket:${channelId}`;
+// Key: tgbot:ticket:<channelId> -> { type, panel, userId, answers, createdAt, guildId }
+const ticketKey = (channelId) => `${NS}ticket:${channelId}`;
 
 async function saveTicket(channelId, data) {
   await setJSON(ticketKey(channelId), data);
@@ -15,8 +17,8 @@ async function deleteTicket(channelId) {
 }
 
 // ---------------- Giveaways ----------------
-// Key: giveaway:<messageId> -> { messageId, channelId, guildId, prize, hostId, endsAt, participants: [userIds], ended, winnerId }
-const giveawayKey = (messageId) => `giveaway:${messageId}`;
+// Key: tgbot:giveaway:<messageId> -> { messageId, channelId, guildId, prize, hostId, endsAt, participants: [userIds], ended, winnerId }
+const giveawayKey = (messageId) => `${NS}giveaway:${messageId}`;
 
 async function saveGiveaway(messageId, data) {
   await setJSON(giveawayKey(messageId), data);
@@ -28,21 +30,21 @@ async function deleteGiveaway(messageId) {
   await del(giveawayKey(messageId));
 }
 async function getAllGiveaways() {
-  const keys = await listKeys('giveaway:');
-  const results = await Promise.all(keys.map((k) => getJSON(k)));
+  const keys = await listKeys(`${NS}giveaway:`);
+  const results = await Promise.all(keys.map((k) => getJSONSafe(k)));
   return results.filter(Boolean);
 }
 
 // ---------------- Giveaway winners (for claim-ticket verification) ----------------
-// Key: winner:<userId>:<messageId> -> { userId, ign, amount, prize, wonAt, expiresAt, claimed }
-const winnerKey = (userId, messageId) => `winner:${userId}:${messageId}`;
+// Key: tgbot:winner:<userId>:<messageId> -> { userId, ign, amount, prize, wonAt, expiresAt, claimed }
+const winnerKey = (userId, messageId) => `${NS}winner:${userId}:${messageId}`;
 
 async function saveWinner(userId, messageId, data) {
   await setJSON(winnerKey(userId, messageId), data);
 }
 async function getWinnersForUser(userId) {
-  const keys = await listKeys(`winner:${userId}:`);
-  const results = await Promise.all(keys.map((k) => getJSON(k)));
+  const keys = await listKeys(`${NS}winner:${userId}:`);
+  const results = await Promise.all(keys.map((k) => getJSONSafe(k)));
   return results.filter(Boolean);
 }
 async function markWinnerClaimed(userId, messageId) {
@@ -57,8 +59,8 @@ async function deleteWinner(userId, messageId) {
 }
 
 // ---------------- Billionaire role grants ----------------
-// Key: billion:<userId> -> { userId, grantedAt, expiresAt }
-const billionKey = (userId) => `billion:${userId}`;
+// Key: tgbot:billion:<userId> -> { userId, grantedAt, expiresAt }
+const billionKey = (userId) => `${NS}billion:${userId}`;
 
 async function saveBillionGrant(userId, data) {
   await setJSON(billionKey(userId), data);
@@ -70,8 +72,8 @@ async function deleteBillionGrant(userId) {
   await del(billionKey(userId));
 }
 async function getAllBillionGrants() {
-  const keys = await listKeys('billion:');
-  const results = await Promise.all(keys.map((k) => getJSON(k)));
+  const keys = await listKeys(`${NS}billion:`);
+  const results = await Promise.all(keys.map((k) => getJSONSafe(k)));
   return results.filter(Boolean);
 }
 
